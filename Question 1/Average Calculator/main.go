@@ -28,7 +28,7 @@ var numberWindow []int
 var apiEndpoints = map[string]string{
 	"p": "http://20.244.56.144/evaluation-service/primes",
 	"f": "http://20.244.56.144/evaluation-service/fibo",
-	"e": "http://20.244.56.144/evaluation-service/evens",
+	"e": "http://20.244.56.144/evaluation-service/even",
 	"r": "http://20.244.56.144/evaluation-service/rand",
 }
 
@@ -50,13 +50,12 @@ func fetchNumbers(numberType string) ([]int, error) {
 	if !exists {
 		return nil, fmt.Errorf("invalid number type: %s", numberType)
 	}
-	
+
 	client := &http.Client{
 		Timeout: time.Duration(TimeoutMS) * time.Millisecond,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(TimeoutMS)*time.Millisecond)
 	defer cancel()
-
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
@@ -67,29 +66,22 @@ func fetchNumbers(numberType string) ([]int, error) {
 	if BearerToken != "" {
 		req.Header.Set("Authorization", "Bearer "+BearerToken)
 	}
-	
-	startTime := time.Now()
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	// Check response time
-	responseTime := time.Since(startTime)
-	if responseTime > time.Duration(TimeoutMS)*time.Millisecond {
-		return nil, fmt.Errorf("response time exceeded %dms", TimeoutMS)
-	}
-	
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status code: %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var numbersResp models.NumbersResponse
 	if err := json.Unmarshal(body, &numbersResp); err != nil {
 		return nil, err
